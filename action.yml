@@ -41,5 +41,5 @@ outputs:
       be true if 'gh auth login' was run and false otherwise.
 
 runs:
-  using: node20
+  using: node24
   main: dist/main.js
