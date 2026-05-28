@@ -1,11 +1,11 @@
-# Setup the GitHub CLI
+# Setup the GitHub CLI (Fork by @kostua16)
 
-👨‍💻 Install & configure the [GitHub CLI] (`gh`) in your GitHub Actions runner
+👨‍💻 Install & configure the [GitHub CLI] (`gh`) in your GitHub Actions runner (Fork by @kostua16)
 
 <table align=center><td>
 
 ```yml
-- uses: actions4gh/setup-gh@v1
+- uses: kostua16/setup-gh@v1
 - run: gh issue create --body "$BODY"
   env:
     GH_REPO: ${{ github.repository }}
@@ -45,7 +45,7 @@ jobs:
     container: alpine:latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions4gh/setup-gh@v1
+      - uses: kostua16/setup-gh@v1
       - run: gh issue create --body "$BODY"
         env:
           BODY: Hello world!
