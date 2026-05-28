@@ -22,6 +22,6 @@ jobs:
       - run: git tag -f "$TAG" && git push -f origin "$TAG"
         env:
           TAG: ${{ github.event.release.tag_name }}
-      - uses: actions/publish-action@v0.2.2
+      - uses: actions/publish-action@v0.4.0
         with:
           source-tag: ${{ github.event.release.tag_name }}
