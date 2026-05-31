@@ -65,16 +65,25 @@ jobs:
   empty string to skip the login step. By default this will use the token
   `github.token`.
 
+- **`switch-account`:** Whether to switch later `gh` commands to the provided
+  token, even when another account is already authenticated. This also exports
+  the provided token as `GH_TOKEN` for later workflow steps. The default is
+  `false`.
+
+- **`skip-matching-version`:** If `false`, installation is skipped whenever any
+  `gh` is already on `PATH`. If `true`, installation is skipped only when the
+  installed version matches `gh-version`. The default is `false`.
+
 - **`github-server-url`:** The GitHub server URL to use when running
   `gh auth login`. Defaults to the current `github.server_url`.
 
 ### Outputs
 
-- **`gh-version`:** The version of `gh` that was installed. This will be
-  something like '2.38.0' or similar.
+- **`gh-version`:** The available version of `gh`. This will be something like
+  '2.38.0' or similar.
 
 - **`auth`:** A boolean indicating whether or not the user is authenticated.
-  This will be true if `gh auth login` was run and false otherwise.
+  This will be true if a token was provided and authentication is available.
 
 ## Development
 

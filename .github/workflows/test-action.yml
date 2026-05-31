@@ -29,5 +29,36 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run build
-      - uses: ./
+      - name: Reuse installed gh
+        uses: ./
+        with:
+          token: ""
+          skip-matching-version: "false"
+      - run: gh --version
+      - name: Reuse matching installed gh
+        uses: ./
+        with:
+          token: ""
+          gh-version: "2.x"
+          skip-matching-version: "true"
+      - name: Install requested gh when installed version differs
+        uses: ./
+        with:
+          token: ""
+          gh-version: "2.28.0"
+          skip-matching-version: "true"
+      - name: Existing GH_TOKEN does not break default auth
+        uses: ./
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          token: ${{ github.token }}
+      - name: Switch account exports provided token
+        uses: ./
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          token: ${{ github.token }}
+          switch-account: "true"
+      - run: test -n "$GH_TOKEN"
       - run: gh auth status

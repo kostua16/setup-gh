@@ -24,6 +24,16 @@ inputs:
       string to skip the login step. By default this will use the token
       'github.token'.
     default: ${{ github.token }}
+  switch-account:
+    description: >
+      Whether to switch later 'gh' commands to the provided token, even when
+      another account is already authenticated.
+    default: false
+  skip-matching-version:
+    description: >
+      If false, skip installation when any 'gh' is already on PATH. If true,
+      skip installation only when the installed version matches 'gh-version'.
+    default: false
   github-server-url:
     description: >
       The GitHub server URL to use when running 'gh auth login'. Defaults to the
@@ -33,12 +43,12 @@ inputs:
 outputs:
   gh-version:
     description: >
-      The version of 'gh' that was installed. This will be something like
-      '2.38.0' or similar.
+      The available version of 'gh'. This will be something like '2.38.0' or
+      similar.
   auth:
     description: >
       A boolean indicating whether or not the user is authenticated. This will
-      be true if 'gh auth login' was run and false otherwise.
+      be true if a token was provided and authentication is available.
 
 runs:
   using: node24
