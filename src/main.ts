@@ -2,7 +2,8 @@ import * as core from "@actions/core";
 import * as tc from "@actions/tool-cache";
 import * as github from "@actions/github";
 import { join } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, mkdtempSync } from "node:fs";
+import { homedir, tmpdir } from "node:os";
 import semver from "semver";
 import process from "node:process";
 import { $ } from "execa";
@@ -135,6 +136,19 @@ function envWithoutGhTokens() {
   return env;
 }
 
+function createGhConfigDir() {
+  return mkdtempSync(join(process.env.RUNNER_TEMP ?? tmpdir(), "setup-gh-"));
+}
+
+function getGhConfigDir() {
+  if (process.env.GH_CONFIG_DIR) return process.env.GH_CONFIG_DIR;
+  if (process.env.XDG_CONFIG_HOME) return join(process.env.XDG_CONFIG_HOME, "gh");
+  if (process.platform === "win32" && process.env.AppData) {
+    return join(process.env.AppData, "GitHub CLI");
+  }
+  return join(homedir(), ".config", "gh");
+}
+
 async function isAuthenticated(hostname: string) {
   const result = await $({ reject: false })`gh auth status --hostname ${hostname}`;
   return result.exitCode === 0;
@@ -167,6 +181,7 @@ if (installedVersion && !skipMatchingVersion) {
   }
 }
 
+let ghConfigDir = getGhConfigDir();
 const token = core.getInput("token");
 if (!token) {
   core.setOutput("auth", false);
@@ -175,6 +190,8 @@ if (!token) {
   core.setSecret(token);
 
   if (switchAccount) {
+    ghConfigDir = createGhConfigDir();
+    core.exportVariable("GH_CONFIG_DIR", ghConfigDir);
     await loginWithToken(hostname, token);
     core.exportVariable("GH_TOKEN", token);
     core.setOutput("auth", true);
@@ -185,3 +202,4 @@ if (!token) {
     core.setOutput("auth", true);
   }
 }
+core.setOutput("gh-config-dir", ghConfigDir);

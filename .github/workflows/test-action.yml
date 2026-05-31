@@ -53,7 +53,20 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         with:
           token: ${{ github.token }}
+      - name: Poison persisted gh auth state
+        run: |
+          mkdir -p "$HOME/.config/gh"
+          cat > "$HOME/.config/gh/hosts.yml" <<'YAML'
+          github.com:
+            git_protocol: https
+            oauth_token: stale-token
+            user: "github-actions[bot]"
+            users:
+              "github-actions[bot]":
+                oauth_token: stale-token
+          YAML
       - name: Switch account exports provided token
+        id: switch-account
         uses: ./
         env:
           GH_TOKEN: ${{ github.token }}
@@ -61,4 +74,18 @@ jobs:
           token: ${{ github.token }}
           switch-account: "true"
       - run: test -n "$GH_TOKEN"
-      - run: gh auth status
+      - run: test -n "$GH_CONFIG_DIR"
+      - run: test "$GH_CONFIG_DIR" = "${{ steps.switch-account.outputs.gh-config-dir }}"
+      - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
+      - run: gh auth status --hostname github.com
+      - name: Switch account creates a new isolated config dir
+        id: switch-account-again
+        uses: ./
+        with:
+          token: ${{ github.token }}
+          switch-account: "true"
+      - run: test -n "$GH_CONFIG_DIR"
+      - run: test "$GH_CONFIG_DIR" = "${{ steps.switch-account-again.outputs.gh-config-dir }}"
+      - run: test "${{ steps.switch-account.outputs.gh-config-dir }}" != "${{ steps.switch-account-again.outputs.gh-config-dir }}"
+      - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
+      - run: gh auth status --hostname github.com

@@ -67,8 +67,9 @@ jobs:
 
 - **`switch-account`:** Whether to switch later `gh` commands to the provided
   token, even when another account is already authenticated. This also exports
-  the provided token as `GH_TOKEN` for later workflow steps. The default is
-  `false`.
+  the provided token as `GH_TOKEN` and a fresh isolated `GH_CONFIG_DIR` for
+  later workflow steps. Each `switch-account: true` invocation creates its own
+  config directory. The default is `false`.
 
 - **`skip-matching-version`:** If `false`, installation is skipped whenever any
   `gh` is already on `PATH`. If `true`, installation is skipped only when the
@@ -84,6 +85,8 @@ jobs:
 
 - **`auth`:** A boolean indicating whether or not the user is authenticated.
   This will be true if a token was provided and authentication is available.
+
+- **`gh-config-dir`:** The GitHub CLI config directory used by this action.
 
 ## Development
 
