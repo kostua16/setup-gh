@@ -141,7 +141,7 @@ async function isAuthenticated(hostname: string) {
 }
 
 async function loginWithToken(hostname: string, token: string) {
-  await $({ input: token, env: envWithoutGhTokens() })`gh auth login --with-token --hostname ${hostname}`;
+  await $({ input: token, env: envWithoutGhTokens(), extendEnv: false })`gh auth login --with-token --hostname ${hostname}`;
 }
 
 const installedVersion = await getInstalledVersion();
