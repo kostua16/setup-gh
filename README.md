@@ -83,8 +83,8 @@ jobs:
 - **`gh-version`:** The available version of `gh`. This will be something like
   '2.38.0' or similar.
 
-- **`auth`:** A boolean indicating whether or not the user is authenticated.
-  This will be true if a token was provided and authentication is available.
+- **`auth`:** A boolean indicating whether `gh auth status --hostname`
+  succeeds for the configured host after any login performed by this action.
 
 - **`gh-config-dir`:** The GitHub CLI config directory used by this action.
 

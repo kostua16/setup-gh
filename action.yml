@@ -48,8 +48,8 @@ outputs:
       similar.
   auth:
     description: >
-      A boolean indicating whether or not the user is authenticated. This will
-      be true if a token was provided and authentication is available.
+      A boolean indicating whether 'gh auth status --hostname' succeeds for the
+      configured host after any login performed by this action.
   gh-config-dir:
     description: >
       The GitHub CLI config directory used by this action.

@@ -149,13 +149,34 @@ function getGhConfigDir() {
   return join(homedir(), ".config", "gh");
 }
 
-async function isAuthenticated(hostname: string) {
+function sanitizeAuthStatusOutput(output: string) {
+  return output
+    .split(/\r?\n/)
+    .filter((line) => !/^\s*(?:-\s*)?Token(?: scopes)?:/i.test(line))
+    .join("\n")
+    .trim();
+}
+
+async function getAuthStatus(hostname: string) {
   const result = await $({ reject: false })`gh auth status --hostname ${hostname}`;
-  return result.exitCode === 0;
+  const output = sanitizeAuthStatusOutput(
+    [result.stdout, result.stderr].filter(Boolean).join("\n"),
+  );
+  return { ok: result.exitCode === 0, output };
 }
 
 async function loginWithToken(hostname: string, token: string) {
   await $({ input: token, env: envWithoutGhTokens(), extendEnv: false })`gh auth login --with-token --hostname ${hostname}`;
+}
+
+async function setAuthOutputFromStatus(hostname: string, warning: string) {
+  const authStatus = await getAuthStatus(hostname);
+  core.setOutput("auth", authStatus.ok);
+  if (!authStatus.ok) {
+    core.warning(warning);
+    if (authStatus.output) core.warning(authStatus.output);
+  }
+  return authStatus.ok;
 }
 
 const installedVersion = await getInstalledVersion();
@@ -194,12 +215,18 @@ if (!token) {
     core.exportVariable("GH_CONFIG_DIR", ghConfigDir);
     await loginWithToken(hostname, token);
     core.exportVariable("GH_TOKEN", token);
-    core.setOutput("auth", true);
-  } else if (await isAuthenticated(hostname)) {
+    await setAuthOutputFromStatus(
+      hostname,
+      `gh auth status --hostname ${hostname} failed after switch-account login; setting auth=false.`,
+    );
+  } else if ((await getAuthStatus(hostname)).ok) {
     core.setOutput("auth", true);
   } else {
     await loginWithToken(hostname, token);
-    core.setOutput("auth", true);
+    await setAuthOutputFromStatus(
+      hostname,
+      `gh auth status --hostname ${hostname} failed after login; setting auth=false.`,
+    );
   }
 }
 core.setOutput("gh-config-dir", ghConfigDir);
