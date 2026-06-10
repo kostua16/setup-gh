@@ -89,3 +89,37 @@ jobs:
       - run: test "${{ steps.switch-account.outputs.gh-config-dir }}" != "${{ steps.switch-account-again.outputs.gh-config-dir }}"
       - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
       - run: gh auth status --hostname github.com
+      - name: Mock gh auth status failure
+        run: |
+          fake_bin="$(mktemp -d)"
+          cat > "$fake_bin/gh" <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          case "$*" in
+            "--version")
+              echo "gh version 2.93.0 (mock)"
+              ;;
+            "auth login --with-token --hostname github.com")
+              cat >/dev/null
+              ;;
+            "auth status --hostname github.com")
+              echo "github.com: status failed" >&2
+              echo "Token: mock-secret" >&2
+              exit 1
+              ;;
+            *)
+              echo "unexpected gh invocation: $*" >&2
+              exit 2
+              ;;
+          esac
+          BASH
+          chmod +x "$fake_bin/gh"
+          echo "$fake_bin" >> "$GITHUB_PATH"
+      - name: Switch account reports false when auth status fails
+        id: auth-status-fails
+        uses: ./
+        with:
+          token: mock-token
+          switch-account: "true"
+      - run: test "${{ steps.auth-status-fails.outputs.auth }}" = "false"
