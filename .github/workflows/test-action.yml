@@ -89,6 +89,34 @@ jobs:
       - run: test "${{ steps.switch-account.outputs.gh-config-dir }}" != "${{ steps.switch-account-again.outputs.gh-config-dir }}"
       - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
       - run: gh auth status --hostname github.com
+      - name: Poison git auth config
+        run: |
+          git config --local credential.helper store
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic stale"
+          git config --local url.https://x-access-token:stale@github.com/.insteadOf https://github.com/
+      - name: Switch account updates raw git credentials
+        id: git-credentials
+        uses: ./
+        env:
+          GH_TOKEN: stale-token
+        with:
+          token: ${{ github.token }}
+          switch-account: "true"
+          update-git-credentials: "true"
+      - run: test -n "$GIT_ASKPASS"
+      - run: test -x "$GIT_ASKPASS"
+      - run: test "$GIT_TERMINAL_PROMPT" = "0"
+      - run: test -n "$GIT_CONFIG_GLOBAL"
+      - run: test -f "$GIT_CONFIG_GLOBAL"
+      - run: test "$GIT_CONFIG_NOSYSTEM" = "1"
+      - run: test -n "$SETUP_GH_GIT_TOKEN"
+      - run: test "$("$GIT_ASKPASS" Username)" = "x-access-token"
+      - run: test "$("$GIT_ASKPASS" Password)" = "$SETUP_GH_GIT_TOKEN"
+      - run: test -z "$(git config --local --get-all credential.helper || true)"
+      - run: test -z "$(git config --local --get-all http.https://github.com/.extraheader || true)"
+      - run: test -z "$(git config --local --get-regexp '^url\..*\.insteadOf$' || true)"
+      - run: grep -q "helper =" "$GIT_CONFIG_GLOBAL"
+      - run: git ls-remote --get-url origin | grep -q '^https://github.com/'
       - name: Mock gh auth status failure
         run: |
           fake_bin="$(mktemp -d)"

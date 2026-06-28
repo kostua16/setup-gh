@@ -30,6 +30,12 @@ inputs:
       another account is already authenticated. When true, this exports
       'GH_TOKEN' and a fresh isolated 'GH_CONFIG_DIR' for later workflow steps.
     default: false
+  update-git-credentials:
+    description: >
+      Whether to configure later raw 'git' commands in the same job to use the
+      provided token through job-scoped askpass credentials. Intended for use
+      with 'switch-account: true' on self-hosted runners with stale Git config.
+    default: false
   skip-matching-version:
     description: >
       If false, skip installation when any 'gh' is already on PATH. If true,

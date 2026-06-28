@@ -71,12 +71,29 @@ jobs:
   later workflow steps. Each `switch-account: true` invocation creates its own
   config directory. The default is `false`.
 
+- **`update-git-credentials`:** Whether to configure later raw `git` commands
+  in the same job to use the provided token through job-scoped askpass
+  credentials. This is useful with `switch-account: true` on self-hosted runners
+  where persisted Git config or checkout credentials may otherwise select an
+  older token. The default is `false`.
+
 - **`skip-matching-version`:** If `false`, installation is skipped whenever any
   `gh` is already on `PATH`. If `true`, installation is skipped only when the
   installed version matches `gh-version`. The default is `false`.
 
 - **`github-server-url`:** The GitHub server URL to use when running
   `gh auth login`. Defaults to the current `github.server_url`.
+
+To switch both `gh` and later raw `git` commands to the same PAT:
+
+```yml
+- uses: kostua16/setup-gh@v1
+  with:
+    token: ${{ secrets.GH_PAT }}
+    cli-token: ${{ secrets.GH_PAT }}
+    switch-account: true
+    update-git-credentials: true
+```
 
 ### Outputs
 
