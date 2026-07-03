@@ -158,7 +158,11 @@ function sanitizeAuthStatusOutput(output: string) {
 }
 
 async function getAuthStatus(hostname: string) {
-  const result = await $({ reject: false })`gh auth status --hostname ${hostname}`;
+  const result = await $({
+    reject: false,
+    env: envWithoutGhTokens(),
+    extendEnv: false,
+  })`gh auth status --hostname ${hostname}`;
   const output = sanitizeAuthStatusOutput(
     [result.stdout, result.stderr].filter(Boolean).join("\n"),
   );
@@ -177,6 +181,18 @@ async function setAuthOutputFromStatus(hostname: string, warning: string) {
     if (authStatus.output) core.warning(authStatus.output);
   }
   return authStatus.ok;
+}
+
+function ghTokenEnvNamesForHost(hostname: string) {
+  return hostname === "github.com"
+    ? ["GH_TOKEN", "GITHUB_TOKEN"]
+    : ["GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"];
+}
+
+function clearGhTokenEnvForHost(hostname: string) {
+  for (const name of ghTokenEnvNamesForHost(hostname)) {
+    core.exportVariable(name, "");
+  }
 }
 
 const installedVersion = await getInstalledVersion();
@@ -214,7 +230,7 @@ if (!token) {
     ghConfigDir = createGhConfigDir();
     core.exportVariable("GH_CONFIG_DIR", ghConfigDir);
     await loginWithToken(hostname, token);
-    core.exportVariable("GH_TOKEN", token);
+    clearGhTokenEnvForHost(hostname);
     await setAuthOutputFromStatus(
       hostname,
       `gh auth status --hostname ${hostname} failed after switch-account login; setting auth=false.`,
