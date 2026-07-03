@@ -191,6 +191,10 @@ async function setAuthOutputFromStatus(
   return authStatus.ok;
 }
 
+function ghTokenEnvNameForHost(hostname: string) {
+  return hostname === "github.com" ? "GH_TOKEN" : "GH_ENTERPRISE_TOKEN";
+}
+
 const installedVersion = await getInstalledVersion();
 if (installedVersion && !skipMatchingVersion) {
   core.info(`Using existing GH CLI ${installedVersion} from PATH`);
@@ -226,7 +230,7 @@ if (!token) {
     ghConfigDir = createGhConfigDir();
     core.exportVariable("GH_CONFIG_DIR", ghConfigDir);
     await loginWithToken(hostname, token);
-    core.exportVariable("GH_TOKEN", token);
+    core.exportVariable(ghTokenEnvNameForHost(hostname), token);
     await setAuthOutputFromStatus(
       hostname,
       `gh auth status --hostname ${hostname} failed after switch-account login; setting auth=false.`,

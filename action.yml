@@ -29,8 +29,9 @@ inputs:
       Whether to switch later 'gh' commands to the provided token, even when
       another account is already authenticated. When true, this exports a
       fresh isolated 'GH_CONFIG_DIR' and the provided token as 'GH_TOKEN' for
-      later workflow steps. The action verifies the isolated config without
-      letting 'GH_TOKEN' shadow it.
+      github.com or 'GH_ENTERPRISE_TOKEN' for GitHub Enterprise Server hosts.
+      The action verifies the isolated config without letting token env vars
+      shadow it.
     default: false
   skip-matching-version:
     description: >
