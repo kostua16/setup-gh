@@ -157,11 +157,15 @@ function sanitizeAuthStatusOutput(output: string) {
     .trim();
 }
 
-async function getAuthStatus(hostname: string) {
+async function getAuthStatus(
+  hostname: string,
+  options: { ignoreGhTokenEnv?: boolean } = {},
+) {
   const result = await $({
     reject: false,
-    env: envWithoutGhTokens(),
-    extendEnv: false,
+    ...(options.ignoreGhTokenEnv
+      ? { env: envWithoutGhTokens(), extendEnv: false }
+      : {}),
   })`gh auth status --hostname ${hostname}`;
   const output = sanitizeAuthStatusOutput(
     [result.stdout, result.stderr].filter(Boolean).join("\n"),
@@ -173,8 +177,12 @@ async function loginWithToken(hostname: string, token: string) {
   await $({ input: token, env: envWithoutGhTokens(), extendEnv: false })`gh auth login --with-token --hostname ${hostname}`;
 }
 
-async function setAuthOutputFromStatus(hostname: string, warning: string) {
-  const authStatus = await getAuthStatus(hostname);
+async function setAuthOutputFromStatus(
+  hostname: string,
+  warning: string,
+  options?: { ignoreGhTokenEnv?: boolean },
+) {
+  const authStatus = await getAuthStatus(hostname, options);
   core.setOutput("auth", authStatus.ok);
   if (!authStatus.ok) {
     core.warning(warning);
@@ -183,16 +191,8 @@ async function setAuthOutputFromStatus(hostname: string, warning: string) {
   return authStatus.ok;
 }
 
-function ghTokenEnvNamesForHost(hostname: string) {
-  return hostname === "github.com"
-    ? ["GH_TOKEN", "GITHUB_TOKEN"]
-    : ["GH_ENTERPRISE_TOKEN", "GITHUB_ENTERPRISE_TOKEN"];
-}
-
-function clearGhTokenEnvForHost(hostname: string) {
-  for (const name of ghTokenEnvNamesForHost(hostname)) {
-    core.exportVariable(name, "");
-  }
+function ghTokenEnvNameForHost(hostname: string) {
+  return hostname === "github.com" ? "GH_TOKEN" : "GH_ENTERPRISE_TOKEN";
 }
 
 const installedVersion = await getInstalledVersion();
@@ -230,10 +230,11 @@ if (!token) {
     ghConfigDir = createGhConfigDir();
     core.exportVariable("GH_CONFIG_DIR", ghConfigDir);
     await loginWithToken(hostname, token);
-    clearGhTokenEnvForHost(hostname);
+    core.exportVariable(ghTokenEnvNameForHost(hostname), token);
     await setAuthOutputFromStatus(
       hostname,
       `gh auth status --hostname ${hostname} failed after switch-account login; setting auth=false.`,
+      { ignoreGhTokenEnv: true },
     );
   } else if ((await getAuthStatus(hostname)).ok) {
     core.setOutput("auth", true);

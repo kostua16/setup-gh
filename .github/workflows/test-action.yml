@@ -65,7 +65,7 @@ jobs:
               "github-actions[bot]":
                 oauth_token: stale-token
           YAML
-      - name: Switch account uses isolated config
+      - name: Switch account exports token and isolated config
         id: switch-account
         uses: ./
         env:
@@ -73,11 +73,11 @@ jobs:
         with:
           token: ${{ github.token }}
           switch-account: "true"
-      - run: test -z "${GH_TOKEN:-}"
+      - run: test -n "$GH_TOKEN"
       - run: test -n "$GH_CONFIG_DIR"
       - run: test "$GH_CONFIG_DIR" = "${{ steps.switch-account.outputs.gh-config-dir }}"
       - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
-      - run: gh auth status --hostname github.com
+      - run: env -u GH_TOKEN -u GITHUB_TOKEN gh auth status --hostname github.com
       - name: Switch account creates a new isolated config dir
         id: switch-account-again
         uses: ./
@@ -88,7 +88,7 @@ jobs:
       - run: test "$GH_CONFIG_DIR" = "${{ steps.switch-account-again.outputs.gh-config-dir }}"
       - run: test "${{ steps.switch-account.outputs.gh-config-dir }}" != "${{ steps.switch-account-again.outputs.gh-config-dir }}"
       - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
-      - run: gh auth status --hostname github.com
+      - run: env -u GH_TOKEN -u GITHUB_TOKEN gh auth status --hostname github.com
       - name: Mock gh where env token shadows stored auth
         run: |
           fake_bin="$(mktemp -d)"
@@ -103,6 +103,9 @@ jobs:
             "auth login --with-token --hostname github.com")
               cat >/dev/null
               ;;
+            "auth login --with-token --hostname ghe.example.com")
+              cat >/dev/null
+              ;;
             "auth status --hostname github.com")
               if [ -n "${GH_TOKEN:-}" ]; then
                 echo "github.com" >&2
@@ -114,6 +117,17 @@ jobs:
               echo "github.com" >&2
               echo "  ✓ Logged in to github.com account github-actions[bot] (${GH_CONFIG_DIR}/hosts.yml)" >&2
               ;;
+            "auth status --hostname ghe.example.com")
+              if [ -n "${GH_ENTERPRISE_TOKEN:-}" ]; then
+                echo "ghe.example.com" >&2
+                echo "  X Failed to log in to ghe.example.com account github-actions[bot] (GH_ENTERPRISE_TOKEN)" >&2
+                echo "  - The token in GH_ENTERPRISE_TOKEN is invalid." >&2
+                echo "  ✓ Logged in to ghe.example.com account github-actions[bot] (${GH_CONFIG_DIR}/hosts.yml)" >&2
+                exit 1
+              fi
+              echo "ghe.example.com" >&2
+              echo "  ✓ Logged in to ghe.example.com account github-actions[bot] (${GH_CONFIG_DIR}/hosts.yml)" >&2
+              ;;
             *)
               echo "unexpected gh invocation: $*" >&2
               exit 2
@@ -122,15 +136,27 @@ jobs:
           BASH
           chmod +x "$fake_bin/gh"
           echo "$fake_bin" >> "$GITHUB_PATH"
-      - name: Switch account clears env-token shadowing
+      - name: Switch account verifies stored auth despite env-token shadowing
         id: env-token-shadowed
         uses: ./
         with:
           token: mock-token
           switch-account: "true"
       - run: test "${{ steps.env-token-shadowed.outputs.auth }}" = "true"
-      - run: test -z "${GH_TOKEN:-}"
-      - run: gh auth status --hostname github.com
+      - run: test -n "$GH_TOKEN"
+      - run: env -u GH_TOKEN -u GITHUB_TOKEN gh auth status --hostname github.com
+      - name: Switch account exports enterprise token for GHES
+        id: enterprise-token
+        uses: ./
+        env:
+          GH_ENTERPRISE_TOKEN: stale-enterprise-token
+        with:
+          token: enterprise-token
+          switch-account: "true"
+          github-server-url: https://ghe.example.com
+      - run: test "${{ steps.enterprise-token.outputs.auth }}" = "true"
+      - run: test "$GH_ENTERPRISE_TOKEN" = "enterprise-token"
+      - run: env -u GH_ENTERPRISE_TOKEN -u GITHUB_ENTERPRISE_TOKEN gh auth status --hostname ghe.example.com
       - name: Mock gh auth status failure
         run: |
           fake_bin="$(mktemp -d)"
