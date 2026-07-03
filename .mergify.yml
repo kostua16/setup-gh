@@ -1,0 +1,7 @@
+queue_rules:
+  - name: main
+    queue_conditions:
+      - check-success = Kilo Code Review
+      - check-success = test-action
+    merge_conditions:
+      - "#check-success >= 2"
