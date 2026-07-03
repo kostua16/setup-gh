@@ -3,5 +3,8 @@ queue_rules:
     queue_conditions:
       - check-success = Kilo Code Review
       - check-success = test-action
+      - "#approved-reviews-by >= 1"
     merge_conditions:
       - "#check-success >= 2"
+merge_queue:
+  max_parallel_checks: 1
