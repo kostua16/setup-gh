@@ -27,8 +27,10 @@ inputs:
   switch-account:
     description: >
       Whether to switch later 'gh' commands to the provided token, even when
-      another account is already authenticated. When true, this exports
-      'GH_TOKEN' and a fresh isolated 'GH_CONFIG_DIR' for later workflow steps.
+      another account is already authenticated. When true, this exports a
+      fresh isolated 'GH_CONFIG_DIR' for later workflow steps and clears gh
+      token environment variables for the configured host so the isolated
+      config is not shadowed.
     default: false
   skip-matching-version:
     description: >

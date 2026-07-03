@@ -65,7 +65,7 @@ jobs:
               "github-actions[bot]":
                 oauth_token: stale-token
           YAML
-      - name: Switch account exports provided token
+      - name: Switch account uses isolated config
         id: switch-account
         uses: ./
         env:
@@ -73,7 +73,7 @@ jobs:
         with:
           token: ${{ github.token }}
           switch-account: "true"
-      - run: test -n "$GH_TOKEN"
+      - run: test -z "${GH_TOKEN:-}"
       - run: test -n "$GH_CONFIG_DIR"
       - run: test "$GH_CONFIG_DIR" = "${{ steps.switch-account.outputs.gh-config-dir }}"
       - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
@@ -88,6 +88,48 @@ jobs:
       - run: test "$GH_CONFIG_DIR" = "${{ steps.switch-account-again.outputs.gh-config-dir }}"
       - run: test "${{ steps.switch-account.outputs.gh-config-dir }}" != "${{ steps.switch-account-again.outputs.gh-config-dir }}"
       - run: test "$GH_CONFIG_DIR" != "$HOME/.config/gh"
+      - run: gh auth status --hostname github.com
+      - name: Mock gh where env token shadows stored auth
+        run: |
+          fake_bin="$(mktemp -d)"
+          cat > "$fake_bin/gh" <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          case "$*" in
+            "--version")
+              echo "gh version 2.93.0 (mock)"
+              ;;
+            "auth login --with-token --hostname github.com")
+              cat >/dev/null
+              ;;
+            "auth status --hostname github.com")
+              if [ -n "${GH_TOKEN:-}" ]; then
+                echo "github.com" >&2
+                echo "  X Failed to log in to github.com account github-actions[bot] (GH_TOKEN)" >&2
+                echo "  - The token in GH_TOKEN is invalid." >&2
+                echo "  ✓ Logged in to github.com account github-actions[bot] (${GH_CONFIG_DIR}/hosts.yml)" >&2
+                exit 1
+              fi
+              echo "github.com" >&2
+              echo "  ✓ Logged in to github.com account github-actions[bot] (${GH_CONFIG_DIR}/hosts.yml)" >&2
+              ;;
+            *)
+              echo "unexpected gh invocation: $*" >&2
+              exit 2
+              ;;
+          esac
+          BASH
+          chmod +x "$fake_bin/gh"
+          echo "$fake_bin" >> "$GITHUB_PATH"
+      - name: Switch account clears env-token shadowing
+        id: env-token-shadowed
+        uses: ./
+        with:
+          token: mock-token
+          switch-account: "true"
+      - run: test "${{ steps.env-token-shadowed.outputs.auth }}" = "true"
+      - run: test -z "${GH_TOKEN:-}"
       - run: gh auth status --hostname github.com
       - name: Mock gh auth status failure
         run: |
